@@ -1,30 +1,670 @@
 'use client';
-import {useEffect,useState} from 'react';
-const prices={"2H":10,"1D":80,"3D":150,"7D":250,"15D":350,"30D":500,"60D":900};
-function useData(view){const[d,setD]=useState(null),[err,setErr]=useState('');useEffect(()=>{fetch('/api/data?view='+view).then(async r=>{const j=await r.json();if(!r.ok)throw Error(j.error);setD(j)}).catch(e=>setErr(e.message))},[view]);return[d,err]}
-function Box({title,children}){return <section className="card p-5"><h2 className="font-bold text-lg mb-4">{title}</h2>{children}</section>}
-function Btn({children,onClick,kind=''}){return <button onClick={onClick} className={'btn '+(kind==='danger'?'btn-danger':kind==='success'?'btn-success':'btn-primary')}>{children}</button>}
-export default function Screens({view}){const[d,err]=useData(view);if(err)return <div className="card p-6 text-red-700 bg-red-50">{err}</div>;if(!d)return <div className="text-slate-500">Loading…</div>;
-if(view==='dashboard')return <><div className="mb-6"><h1 className="text-3xl font-black">Dashboard</h1><p className="text-slate-500">Overview of your panel.</p></div><div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">{Object.entries(d.stats||{}).map(([k,v])=><div className="card p-5" key={k}><div className="text-sm text-slate-500 capitalize">{k.replaceAll('_',' ')}</div><div className="text-3xl font-black mt-2">{v}</div></div>)}</div></>;
-if(view==='generate')return <Generate me={d.me}/>;
-if(view==='keys')return <Keys rows={d.rows}/>;
-if(view==='users')return <Users rows={d.rows} me={d.me}/>;
-if(view==='admins')return <Admins rows={d.rows}/>;
-if(view==='referral')return <Referral rows={d.rows} me={d.me}/>;
-if(view==='permissions')return <Permissions rows={d.rows}/>;
-if(view==='server')return <Server data={d}/>;
-if(view==='settings')return <Settings data={d}/>;
-if(view==='aes')return <AES data={d}/>;
-if(view==='create-panel')return <Panels rows={d.rows}/>;}
-function post(body){return fetch('/api/action',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}).then(async r=>{const j=await r.json();if(!r.ok)throw Error(j.error);return j})}
-function Generate({me}){const[f,setF]=useState({duration:'2H',device_limit:1,amount:1,custom_key:''}),[out,setOut]=useState(''),[e,setE]=useState('');const cost=(prices[f.duration]||10)*Math.max(1,+f.device_limit||1)*Math.max(1,+f.amount||1);return <Box title="Generate Keys"><div className="text-sm mb-5 text-slate-500">Balance: <b>{me.role==='OWNER'?'Unlimited':me.balance+' Rs'}</b> · Estimated cost: <b>{cost} Rs</b></div>{e&&<div className="mb-4 text-red-600">{e}</div>}<div className="grid md:grid-cols-2 gap-4"><input className="input" placeholder="Custom key (optional)" value={f.custom_key} onChange={e=>setF({...f,custom_key:e.target.value})}/><select className="input" value={f.duration} onChange={e=>setF({...f,duration:e.target.value})}>{Object.keys(prices).map(x=><option key={x}>{x}</option>)}</select><input className="input" type="number" min="1" value={f.device_limit} onChange={e=>setF({...f,device_limit:e.target.value})}/><input className="input" type="number" min="1" value={f.amount} onChange={e=>setF({...f,amount:e.target.value})}/></div><button className="btn btn-primary mt-5" onClick={()=>post({action:'generate_keys',...f}).then(j=>setOut(j.keys.join('\n'))).catch(x=>setE(x.message))}>Generate</button>{out&&<textarea className="input mt-5 h-40 font-mono" readOnly value={out}/>}</Box>}
-function Keys({rows}){return <Box title="Key List"><Table cols={['Key','Duration','Devices','Uses','Expires','Status','Actions']} rows={rows.map(x=>[x.key_value,x.duration,`${x.current_devices}/${x.device_limit}`,x.uses,x.expires_at||'Not started',x.is_blocked?'Blocked':'Active',<div className="flex gap-2"><Btn kind={x.is_blocked?'success':''} onClick={()=>post({action:'toggle_key',key_id:x.id}).then(()=>location.reload())}>{x.is_blocked?'Unblock':'Block'}</Btn><Btn kind="danger" onClick={()=>post({action:'delete_key',key_id:x.id}).then(()=>location.reload())}>Delete</Btn></div>])}/></Box>}
-function Users({rows,me}){return <Box title="User Management"><Table cols={['User','Role','Balance','Validity','Status','Actions']} rows={rows.map(x=>[`${x.username} (#${x.id})`,x.role,x.balance,x.validity||'Lifetime',x.is_blocked?'Blocked':'Active',<div className="flex gap-2 flex-wrap"><Btn kind="success" onClick={()=>post({action:'add_balance',target_id:x.id,amount:prompt('Amount')}).then(()=>location.reload())}>+ Balance</Btn><Btn onClick={()=>post({action:'deduct_balance',target_id:x.id,amount:prompt('Amount')}).then(()=>location.reload())}>− Balance</Btn>{x.id!==me.id&&<Btn kind={x.is_blocked?'success':'danger'} onClick={()=>post({action:'toggle_user',target_id:x.id}).then(()=>location.reload())}>{x.is_blocked?'Unblock':'Block'}</Btn>}</div>])}/></Box>}
-function Admins({rows}){return <Box title="Admin Manager"><Table cols={['User','Role','Balance','Status','Keys','Action']} rows={rows.map(x=>[x.username,x.role,x.balance,x.is_blocked?'Blocked':'Active',x.total_keys,<a className="btn btn-primary" href={'/admins?view_keys='+x.id}>View keys</a>])}/></Box>}
-function Referral({rows,me}){const[f,setF]=useState({role:'RESELLER',duration:30,balance:0});return <><Box title="Generate Referral"><div className="grid md:grid-cols-3 gap-3"><select className="input" value={f.role} onChange={e=>setF({...f,role:e.target.value})}><option>RESELLER</option><option>ADMIN</option></select><input className="input" type="number" value={f.duration} onChange={e=>setF({...f,duration:e.target.value})}/><input className="input" type="number" value={f.balance} onChange={e=>setF({...f,balance:e.target.value})}/></div><button className="btn btn-primary mt-4" onClick={()=>post({action:'generate_referral',...f}).then(j=>alert(j.code)).catch(e=>alert(e.message))}>Generate</button></Box><div className="h-4"/><Box title="Referrals"><Table cols={['Code','Role','Duration','Balance','Used','Creator','Action']} rows={rows.map(x=>[x.code,x.role,x.duration+' days',x.balance,x.used?'Yes':'No',x.creator_name,<Btn kind="danger" onClick={()=>post({action:'delete_referral',code:x.code}).then(()=>location.reload())}>Delete</Btn>])}/></Box></>}
-function Permissions({rows}){return <Box title="Permissions"><Table cols={['User','Role','Referral permission','Limit','Actions']} rows={rows.map(x=>[x.username,x.role,x.can_generate_referral?'Enabled':'Disabled',x.referral_limit,<div className="flex gap-2"><Btn onClick={()=>post({action:'toggle_referral_permission',target_id:x.id}).then(()=>location.reload())}>Toggle</Btn><Btn onClick={()=>post({action:'set_referral_limit',target_id:x.id,limit:prompt('Limit',x.referral_limit)}).then(()=>location.reload())}>Set limit</Btn></div>])}/></Box>}
-function Server({data}){const [f,setF]=useState(data.settings);return <Box title="Server & Mod Settings"><div className="grid md:grid-cols-2 gap-4">{['modname','mod_status','credit'].map(k=><input className="input" key={k} value={f[k]||''} placeholder={k} onChange={e=>setF({...f,[k]:e.target.value})}/>)}</div><div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">{['ESP','Item','AIM','SilentAim','BulletTrack','Floating','Memory','Setting'].map(k=><label className="border rounded-lg p-3 flex gap-2"><input type="checkbox" checked={f[k]==='on'} onChange={e=>setF({...f,[k]:e.target.checked?'on':'off'})}/>{k}</label>)}</div><textarea className="input mt-4" placeholder="Maintenance reason" value={data.maintenance?.reason||''} onChange={e=>setF({...f,maintenance_reason:e.target.value})}/><label className="block mt-3"><input type="checkbox" checked={data.maintenance?.is_active===1} onChange={e=>setF({...f,maintenance_mode:e.target.checked})}/> Maintenance mode</label><Btn onClick={()=>post({action:'save_server',...f}).then(()=>location.reload())}>Save</Btn></Box>}
-function Settings({data}){const[f,setF]=useState({panel_name:data.panel_name||''});return <Box title="Settings"><p className="text-sm text-slate-500 mb-4">Connect token: <code>{data.connect_token}</code></p><div className="space-y-3 max-w-xl"><input className="input" value={f.panel_name} onChange={e=>setF({...f,panel_name:e.target.value})} placeholder="Panel name"/><Btn onClick={()=>post({action:'panel_name',panel_name:f.panel_name}).then(()=>location.reload())}>Save name</Btn><hr/><input id="cp" className="input" type="password" placeholder="Current password"/><input id="np" className="input" type="password" placeholder="New password"/><Btn onClick={()=>post({action:'change_password',current_password:document.getElementById('cp').value,new_password:document.getElementById('np').value}).then(()=>alert('Password changed')).catch(e=>alert(e.message))}>Change password</Btn></div></Box>}
-function AES({data}){const[f,setF]=useState(data);return <Box title="AES Settings"><input className="input mb-3" value={f.aes_key||''} onChange={e=>setF({...f,aes_key:e.target.value})} placeholder="AES key"/><input className="input" value={f.aes_iv||''} onChange={e=>setF({...f,aes_iv:e.target.value})} placeholder="AES IV"/><Btn onClick={()=>post({action:'save_aes',aes_key:f.aes_key,aes_iv:f.aes_iv}).then(()=>location.reload())}>Save</Btn></Box>}
-function Panels({rows}){return <Box title="Panel Manager"><div className="grid md:grid-cols-3 gap-3 mb-5"><input id="pn" className="input" placeholder="Panel name"/><input id="pd" className="input" type="number" defaultValue="30" placeholder="Duration days"/><Btn onClick={()=>post({action:'create_panel',panel_name:document.getElementById('pn').value,duration:document.getElementById('pd').value}).then(()=>location.reload())}>Create</Btn></div><Table cols={['Panel','Token','Expires','Users','Keys','Status','Actions']} rows={rows.map(x=>[x.panel_code,x.connect_token,x.expires_at||'Lifetime',x.total_users,x.total_keys,x.is_active?'Active':'Disabled',<div className="flex gap-2"><Btn onClick={()=>post({action:'toggle_panel',panel_code:x.panel_code}).then(()=>location.reload())}>Toggle</Btn>{x.panel_code!=='YUVI_001'&&<Btn kind="danger" onClick={()=>post({action:'delete_panel',panel_code:x.panel_code}).then(()=>location.reload())}>Delete</Btn>}</div>])}/></Box>}
-function Table({cols,rows}){return <div className="overflow-auto"><table className="table w-full min-w-[700px]"><thead><tr>{cols.map(c=><th key={c}>{c}</th>)}</tr></thead><tbody>{rows.map((r,i)=><tr key={i}>{r.map((c,j)=><td key={j}>{c}</td>)}</tr>)}</tbody></table></div>}
+
+import { useEffect, useState } from 'react';
+
+const prices = {
+  '2H': 10,
+  '1D': 80,
+  '3D': 150,
+  '7D': 250,
+  '15D': 350,
+  '30D': 500,
+  '60D': 900,
+};
+
+function useData(view) {
+  const [d, setD] = useState(null);
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    fetch('/api/data?view=' + view)
+      .then(async (r) => {
+        const j = await r.json();
+        if (!r.ok) throw Error(j.error);
+        setD(j);
+      })
+      .catch((e) => setErr(e.message));
+  }, [view]);
+
+  return [d, err];
+}
+
+function Box({ title, children }) {
+  return (
+    <section className="card p-5">
+      <h2 className="font-bold text-lg mb-4">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
+function Btn({ children, onClick, kind = '' }) {
+  return (
+    <button
+      onClick={onClick}
+      className={
+        'btn ' +
+        (kind === 'danger'
+          ? 'btn-danger'
+          : kind === 'success'
+          ? 'btn-success'
+          : 'btn-primary')
+      }
+    >
+      {children}
+    </button>
+  );
+}
+
+export default function Screens({ view }) {
+  const [d, err] = useData(view);
+
+  if (err) return <div className="card p-6 text-red-700 bg-red-50">{err}</div>;
+  if (!d) return <div className="text-slate-500">Loading…</div>;
+
+  if (view === 'dashboard') {
+    return (
+      <>
+        <div className="mb-6">
+          <h1 className="text-3xl font-black">Dashboard</h1>
+          <p className="text-slate-500">Overview of your panel.</p>
+        </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Object.entries(d.stats || {}).map(([k, v]) => (
+            <div className="card p-5" key={k}>
+              <div className="text-sm text-slate-500 capitalize">
+                {k.replaceAll('_', ' ')}
+              </div>
+              <div className="text-3xl font-black mt-2">{v}</div>
+            </div>
+          ))}
+        </div>
+      </>
+    );
+  }
+
+  if (view === 'generate') return <Generate me={d.me} />;
+  if (view === 'keys') return <Keys rows={d.rows} />;
+  if (view === 'users') return <Users rows={d.rows} me={d.me} />;
+  if (view === 'admins') return <Admins rows={d.rows} />;
+  if (view === 'referral') return <Referral rows={d.rows} me={d.me} />;
+  if (view === 'permissions') return <Permissions rows={d.rows} />;
+  if (view === 'server') return <Server data={d} />;
+  if (view === 'settings') return <Settings data={d} />;
+  if (view === 'aes') return <AES data={d} />;
+  if (view === 'create-panel') return <Panels rows={d.rows} />;
+}
+
+function post(body) {
+  return fetch('/api/action', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  }).then(async (r) => {
+    const j = await r.json();
+    if (!r.ok) throw Error(j.error);
+    return j;
+  });
+}
+
+function Generate({ me }) {
+  const [f, setF] = useState({
+    duration: '2H',
+    device_limit: 1,
+    amount: 1,
+    custom_key: '',
+  });
+  const [out, setOut] = useState('');
+  const [e, setE] = useState('');
+
+  const cost =
+    (prices[f.duration] || 10) *
+    Math.max(1, +f.device_limit || 1) *
+    Math.max(1, +f.amount || 1);
+
+  return (
+    <Box title="Generate Keys">
+      <div className="text-sm mb-5 text-slate-500">
+        Balance: <b>{me.role === 'OWNER' ? 'Unlimited' : me.balance + ' Rs'}</b> ·
+        Estimated cost: <b>{cost} Rs</b>
+      </div>
+
+      {e && <div className="mb-4 text-red-600">{e}</div>}
+
+      <div className="grid md:grid-cols-2 gap-4">
+        <label className="block">
+          <span className="block text-sm font-medium mb-2">Key name</span>
+          <input
+            className="input"
+            placeholder="Custom key (optional)"
+            value={f.custom_key}
+            onChange={(e) => setF({ ...f, custom_key: e.target.value })}
+          />
+        </label>
+        <label className="block">
+          <span className="block text-sm font-medium mb-2">Duration</span>
+          <select
+            className="input"
+            value={f.duration}
+            onChange={(e) => setF({ ...f, duration: e.target.value })}
+          >
+            {Object.keys(prices).map((x) => (
+              <option key={x}>{x}</option>
+            ))}
+          </select>
+        </label>
+        <label className="block">
+          <span className="block text-sm font-medium mb-2">Device</span>
+          <input
+            className="input"
+            type="number"
+            min="1"
+            value={f.device_limit}
+            onChange={(e) => setF({ ...f, device_limit: e.target.value })}
+          />
+        </label>
+        <label className="block">
+          <span className="block text-sm font-medium mb-2">Keys count</span>
+          <input
+            className="input"
+            type="number"
+            min="1"
+            value={f.amount}
+            onChange={(e) => setF({ ...f, amount: e.target.value })}
+          />
+        </label>
+      </div>
+
+      <button
+        className="btn btn-primary mt-5"
+        onClick={() =>
+          post({ action: 'generate_keys', ...f })
+            .then((j) => setOut(j.keys.join('\n')))
+            .catch((x) => setE(x.message))
+        }
+      >
+        Generate
+      </button>
+
+      {out && (
+        <textarea
+          className="input mt-5 h-40 font-mono"
+          readOnly
+          value={out}
+        />
+      )}
+    </Box>
+  );
+}
+
+function Keys({ rows }) {
+  return (
+    <Box title="Key List">
+      <Table
+        cols={['Key', 'Duration', 'Devices', 'Uses', 'Expires', 'Status', 'Actions']}
+        rows={rows.map((x) => [
+          x.key_value,
+          x.duration,
+          `${x.current_devices}/${x.device_limit}`,
+          x.uses,
+          x.expires_at || 'Not started',
+          x.is_blocked ? 'Blocked' : 'Active',
+          <div className="flex gap-2" key={x.id}>
+            <Btn
+              kind={x.is_blocked ? 'success' : ''}
+              onClick={() =>
+                post({ action: 'toggle_key', key_id: x.id }).then(() =>
+                  location.reload()
+                )
+              }
+            >
+              {x.is_blocked ? 'Unblock' : 'Block'}
+            </Btn>
+            <Btn
+              kind="danger"
+              onClick={() =>
+                post({ action: 'delete_key', key_id: x.id }).then(() =>
+                  location.reload()
+                )
+              }
+            >
+              Delete
+            </Btn>
+          </div>,
+        ])}
+      />
+    </Box>
+  );
+}
+
+function Users({ rows, me }) {
+  return (
+    <Box title="User Management">
+      <Table
+        cols={['User', 'Role', 'Balance', 'Validity', 'Status', 'Actions']}
+        rows={rows.map((x) => [
+          `${x.username} (#${x.id})`,
+          x.role,
+          x.balance,
+          x.validity || 'Lifetime',
+          x.is_blocked ? 'Blocked' : 'Active',
+          <div className="flex gap-2 flex-wrap" key={x.id}>
+            <Btn
+              kind="success"
+              onClick={() =>
+                post({
+                  action: 'add_balance',
+                  target_id: x.id,
+                  amount: prompt('Amount'),
+                }).then(() => location.reload())
+              }
+            >
+              + Balance
+            </Btn>
+            <Btn
+              onClick={() =>
+                post({
+                  action: 'deduct_balance',
+                  target_id: x.id,
+                  amount: prompt('Amount'),
+                }).then(() => location.reload())
+              }
+            >
+              − Balance
+            </Btn>
+            {x.id !== me.id && (
+              <Btn
+                kind={x.is_blocked ? 'success' : 'danger'}
+                onClick={() =>
+                  post({ action: 'toggle_user', target_id: x.id }).then(() =>
+                    location.reload()
+                  )
+                }
+              >
+                {x.is_blocked ? 'Unblock' : 'Block'}
+              </Btn>
+            )}
+          </div>,
+        ])}
+      />
+    </Box>
+  );
+}
+
+function Admins({ rows }) {
+  return (
+    <Box title="Admin Manager">
+      <Table
+        cols={['User', 'Role', 'Balance', 'Status', 'Keys', 'Action']}
+        rows={rows.map((x) => [
+          x.username,
+          x.role,
+          x.balance,
+          x.is_blocked ? 'Blocked' : 'Active',
+          x.total_keys,
+          <a
+            key={x.id}
+            className="btn btn-primary"
+            href={'/admins?view_keys=' + x.id}
+          >
+            View keys
+          </a>,
+        ])}
+      />
+    </Box>
+  );
+}
+
+function Referral({ rows, me }) {
+  const [f, setF] = useState({ role: 'RESELLER', duration: 30, balance: 0 });
+
+  return (
+    <>
+      <Box title="Generate Referral">
+        <div className="grid md:grid-cols-3 gap-3">
+          <select
+            className="input"
+            value={f.role}
+            onChange={(e) => setF({ ...f, role: e.target.value })}
+          >
+            <option>RESELLER</option>
+            <option>ADMIN</option>
+          </select>
+          <input
+            className="input"
+            type="number"
+            value={f.duration}
+            onChange={(e) => setF({ ...f, duration: e.target.value })}
+          />
+          <input
+            className="input"
+            type="number"
+            value={f.balance}
+            onChange={(e) => setF({ ...f, balance: e.target.value })}
+          />
+        </div>
+        <button
+          className="btn btn-primary mt-4"
+          onClick={() =>
+            post({ action: 'generate_referral', ...f })
+              .then((j) => alert(j.code))
+              .catch((e) => alert(e.message))
+          }
+        >
+          Generate
+        </button>
+      </Box>
+
+      <div className="h-4" />
+
+      <Box title="Referrals">
+        <Table
+          cols={['Code', 'Role', 'Duration', 'Balance', 'Used', 'Creator', 'Action']}
+          rows={rows.map((x) => [
+            x.code,
+            x.role,
+            x.duration + ' days',
+            x.balance,
+            x.used ? 'Yes' : 'No',
+            x.creator_name,
+            <Btn
+              key={x.code}
+              kind="danger"
+              onClick={() =>
+                post({ action: 'delete_referral', code: x.code }).then(() =>
+                  location.reload()
+                )
+              }
+            >
+              Delete
+            </Btn>,
+          ])}
+        />
+      </Box>
+    </>
+  );
+}
+
+function Permissions({ rows }) {
+  return (
+    <Box title="Permissions">
+      <Table
+        cols={['User', 'Role', 'Referral permission', 'Limit', 'Actions']}
+        rows={rows.map((x) => [
+          x.username,
+          x.role,
+          x.can_generate_referral ? 'Enabled' : 'Disabled',
+          x.referral_limit,
+          <div className="flex gap-2" key={x.id}>
+            <Btn
+              onClick={() =>
+                post({
+                  action: 'toggle_referral_permission',
+                  target_id: x.id,
+                }).then(() => location.reload())
+              }
+            >
+              Toggle
+            </Btn>
+            <Btn
+              onClick={() =>
+                post({
+                  action: 'set_referral_limit',
+                  target_id: x.id,
+                  limit: prompt('Limit', x.referral_limit),
+                }).then(() => location.reload())
+              }
+            >
+              Set limit
+            </Btn>
+          </div>,
+        ])}
+      />
+    </Box>
+  );
+}
+
+function Server({ data }) {
+  const [f, setF] = useState(data.settings);
+
+  return (
+    <Box title="Server & Mod Settings">
+      <div className="grid md:grid-cols-2 gap-4">
+        {['modname', 'mod_status', 'credit'].map((k) => (
+          <input
+            className="input"
+            key={k}
+            value={f[k] || ''}
+            placeholder={k}
+            onChange={(e) => setF({ ...f, [k]: e.target.value })}
+          />
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5">
+        {[
+          'ESP',
+          'Item',
+          'AIM',
+          'SilentAim',
+          'BulletTrack',
+          'Floating',
+          'Memory',
+          'Setting',
+        ].map((k) => (
+          <label className="border rounded-lg p-3 flex gap-2" key={k}>
+            <input
+              type="checkbox"
+              checked={f[k] === 'on'}
+              onChange={(e) =>
+                setF({ ...f, [k]: e.target.checked ? 'on' : 'off' })
+              }
+            />
+            {k}
+          </label>
+        ))}
+      </div>
+
+      <textarea
+        className="input mt-4"
+        placeholder="Maintenance reason"
+        value={data.maintenance?.reason || ''}
+        onChange={(e) => setF({ ...f, maintenance_reason: e.target.value })}
+      />
+
+      <label className="block mt-3">
+        <input
+          type="checkbox"
+          checked={data.maintenance?.is_active === 1}
+          onChange={(e) => setF({ ...f, maintenance_mode: e.target.checked })}
+        />
+        Maintenance mode
+      </label>
+
+      <Btn
+        onClick={() =>
+          post({ action: 'save_server', ...f }).then(() => location.reload())
+        }
+      >
+        Save
+      </Btn>
+    </Box>
+  );
+}
+
+function Settings({ data }) {
+  const [f, setF] = useState({ panel_name: data.panel_name || '' });
+
+  return (
+    <Box title="Settings">
+      <p className="text-sm text-slate-500 mb-4">
+        Connect token: <code>{data.connect_token}</code>
+      </p>
+
+      <div className="space-y-3 max-w-xl">
+        <input
+          className="input"
+          value={f.panel_name}
+          onChange={(e) => setF({ ...f, panel_name: e.target.value })}
+          placeholder="Panel name"
+        />
+        <Btn
+          onClick={() =>
+            post({ action: 'panel_name', panel_name: f.panel_name }).then(() =>
+              location.reload()
+            )
+          }
+        >
+          Save name
+        </Btn>
+
+        <hr />
+
+        <input
+          id="cp"
+          className="input"
+          type="password"
+          placeholder="Current password"
+        />
+        <input
+          id="np"
+          className="input"
+          type="password"
+          placeholder="New password"
+        />
+        <Btn
+          onClick={() =>
+            post({
+              action: 'change_password',
+              current_password: document.getElementById('cp').value,
+              new_password: document.getElementById('np').value,
+            })
+              .then(() => alert('Password changed'))
+              .catch((e) => alert(e.message))
+          }
+        >
+          Change password
+        </Btn>
+      </div>
+    </Box>
+  );
+}
+
+function AES({ data }) {
+  const [f, setF] = useState(data);
+
+  return (
+    <Box title="AES Settings">
+      <input
+        className="input mb-3"
+        value={f.aes_key || ''}
+        onChange={(e) => setF({ ...f, aes_key: e.target.value })}
+        placeholder="AES key"
+      />
+      <input
+        className="input"
+        value={f.aes_iv || ''}
+        onChange={(e) => setF({ ...f, aes_iv: e.target.value })}
+        placeholder="AES IV"
+      />
+      <Btn
+        onClick={() =>
+          post({ action: 'save_aes', aes_key: f.aes_key, aes_iv: f.aes_iv }).then(
+            () => location.reload()
+          )
+        }
+      >
+        Save
+      </Btn>
+    </Box>
+  );
+}
+
+function Panels({ rows }) {
+  return (
+    <Box title="Panel Manager">
+      <div className="grid md:grid-cols-3 gap-3 mb-5">
+        <input id="pn" className="input" placeholder="Panel name" />
+        <input
+          id="pd"
+          className="input"
+          type="number"
+          defaultValue="30"
+          placeholder="Duration days"
+        />
+        <Btn
+          onClick={() =>
+            post({
+              action: 'create_panel',
+              panel_name: document.getElementById('pn').value,
+              duration: document.getElementById('pd').value,
+            }).then(() => location.reload())
+          }
+        >
+          Create
+        </Btn>
+      </div>
+
+      <Table
+        cols={['Panel', 'Token', 'Expires', 'Users', 'Keys', 'Status', 'Actions']}
+        rows={rows.map((x) => [
+          x.panel_code,
+          x.connect_token,
+          x.expires_at || 'Lifetime',
+          x.total_users,
+          x.total_keys,
+          x.is_active ? 'Active' : 'Disabled',
+          <div className="flex gap-2" key={x.panel_code}>
+            <Btn
+              onClick={() =>
+                post({ action: 'toggle_panel', panel_code: x.panel_code }).then(() =>
+                  location.reload()
+                )
+              }
+            >
+              Toggle
+            </Btn>
+            {x.panel_code !== 'YUVI_001' && (
+              <Btn
+                kind="danger"
+                onClick={() =>
+                  post({
+                    action: 'delete_panel',
+                    panel_code: x.panel_code,
+                  }).then(() => location.reload())
+                }
+              >
+                Delete
+              </Btn>
+            )}
+          </div>,
+        ])}
+      />
+    </Box>
+  );
+}
+
+function Table({ cols, rows }) {
+  return (
+    <div className="overflow-auto">
+      <table className="table w-full min-w-[700px]">
+        <thead>
+          <tr>
+            {cols.map((c) => (
+              <th key={c}>{c}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i}>
+              {r.map((c, j) => (
+                <td key={j}>{c}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
