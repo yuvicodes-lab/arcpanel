@@ -12,6 +12,11 @@ export async function GET(req){
       const u = (await query('SELECT id,full_name,username,role,balance,panel_code,is_blocked FROM users WHERE id=?',[id]))[0];
       return NextResponse.json(u);
     }
+    if(view==='generate'){
+      const u = (await query('SELECT id,full_name,username,role,balance,panel_code,is_blocked FROM users WHERE id=? AND panel_code=?',[id,pc]))[0];
+      if(!u) return NextResponse.json({error:'User not found.'},{status:404});
+      return NextResponse.json({me:u});
+    }
     if(view==='dashboard'){
       let stats;
       if(role==='OWNER') {
