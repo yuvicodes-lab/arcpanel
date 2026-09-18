@@ -9,8 +9,8 @@ export const metadata = {
 };
 
 export const viewport = {
-  themeColor: '#07080d',
-  colorScheme: 'dark',
+  themeColor: '#f4f5f8',
+  colorScheme: 'light',
   width: 'device-width',
   initialScale: 1,
 };

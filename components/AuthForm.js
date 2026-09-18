@@ -36,11 +36,11 @@ export default function AuthForm({ mode }) {
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden p-5">
-      <div className="pointer-events-none absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(124,92,255,0.25),transparent_70%)] blur-2xl" />
+      <div className="pointer-events-none absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(91,87,235,0.1),transparent_70%)] blur-2xl" />
 
       <div className="card glass relative w-full max-w-md p-7 md:p-8 animate-in">
         <div className="mb-7">
-          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-[#7c5cff] to-[#5b8cff] text-xl font-black text-white shadow-[0_14px_30px_-12px_rgba(124,92,255,1)]">
+          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[var(--primary)] text-xl font-black text-white shadow-sm">
             Y
           </span>
           <h1 className="mt-4 text-2xl font-black tracking-tight">
@@ -98,14 +98,14 @@ export default function AuthForm({ mode }) {
 
         <div className="mt-6 text-center text-sm text-[var(--muted)]">
           {register ? 'Already have an account? ' : 'Need an account? '}
-          <Link className="font-bold text-[#b5a4ff] hover:underline" href={register ? '/login' : '/register'}>
+          <Link className="font-bold text-[var(--primary)] hover:underline" href={register ? '/login' : '/register'}>
             {register ? 'Sign in' : 'Register'}
           </Link>
         </div>
 
         {!register && (
           <div className="mt-2 text-center">
-            <Link className="text-sm font-semibold text-[#b5a4ff] hover:underline" href="/join-panel">
+            <Link className="text-sm font-semibold text-[var(--primary)] hover:underline" href="/join-panel">
               Claim Panel Code
             </Link>
           </div>

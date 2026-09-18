@@ -37,17 +37,30 @@ const prices = {
   '60D': 900,
 };
 
+const INDIGO = 'bg-[#eef0fe] text-[#5b57eb]';
+const CYAN = 'bg-[#e6f6fe] text-[#0284c7]';
+const GREEN = 'bg-[#e7f6ec] text-[#15a34a]';
+const AMBER = 'bg-[#fdf3e3] text-[#c2740a]';
+const PINK = 'bg-[#fdeef6] text-[#d43f8d]';
+
 const statMeta = {
-  total_admins: { label: 'Total Admins', icon: Crown, tint: 'from-[#7c5cff] to-[#5b8cff]' },
-  total_resellers: { label: 'Total Resellers', icon: Users, tint: 'from-[#22d3ee] to-[#5b8cff]' },
-  total_keys: { label: 'Total Keys', icon: KeyRound, tint: 'from-[#34d399] to-[#22d3ee]' },
-  admin_keys: { label: 'Admin Keys', icon: KeyRound, tint: 'from-[#fbbf24] to-[#f87171]' },
-  reseller_keys: { label: 'Reseller Keys', icon: KeyRound, tint: 'from-[#f472b6] to-[#7c5cff]' },
-  my_resellers: { label: 'My Resellers', icon: Users, tint: 'from-[#22d3ee] to-[#5b8cff]' },
-  my_keys: { label: 'My Keys', icon: KeyRound, tint: 'from-[#7c5cff] to-[#5b8cff]' },
-  my_reseller_keys: { label: 'Reseller Keys', icon: KeyRound, tint: 'from-[#f472b6] to-[#7c5cff]' },
-  my_active_keys: { label: 'Active Keys', icon: Activity, tint: 'from-[#34d399] to-[#22d3ee]' },
+  total_admins: { label: 'Total Admins', icon: Crown, tint: INDIGO },
+  total_resellers: { label: 'Total Resellers', icon: Users, tint: CYAN },
+  total_keys: { label: 'Total Keys', icon: KeyRound, tint: GREEN },
+  admin_keys: { label: 'Admin Keys', icon: KeyRound, tint: AMBER },
+  reseller_keys: { label: 'Reseller Keys', icon: KeyRound, tint: PINK },
+  my_resellers: { label: 'My Resellers', icon: Users, tint: CYAN },
+  my_keys: { label: 'My Keys', icon: KeyRound, tint: INDIGO },
+  my_reseller_keys: { label: 'Reseller Keys', icon: KeyRound, tint: PINK },
+  my_active_keys: { label: 'Active Keys', icon: Activity, tint: GREEN },
 };
+
+function fmtDate(v) {
+  if (!v) return null;
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+}
 
 function useData(view) {
   const [d, setD] = useState(null);
@@ -72,7 +85,7 @@ function PageHeader({ icon: Icon, title, subtitle }) {
   return (
     <div className="mb-6 flex items-start gap-3.5">
       {Icon && (
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-[var(--border)] bg-[var(--surface-3)] text-[#b5a4ff]">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-[var(--border)] bg-[var(--surface-3)] text-[var(--primary)]">
           <Icon size={20} />
         </span>
       )}
@@ -91,7 +104,7 @@ function Box({ title, desc, icon: Icon, children, actions }) {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
           <div className="flex items-center gap-3">
             {Icon && (
-              <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--surface-3)] text-[#b5a4ff]">
+              <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--surface-3)] text-[var(--primary)]">
                 <Icon size={18} />
               </span>
             )}
@@ -188,13 +201,13 @@ function Dashboard({ stats }) {
       {entries.length ? (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {entries.map(([k, v]) => {
-            const meta = statMeta[k] || { label: k.replaceAll('_', ' '), icon: Activity, tint: 'from-[#7c5cff] to-[#5b8cff]' };
+            const meta = statMeta[k] || { label: k.replaceAll('_', ' '), icon: Activity, tint: INDIGO };
             const Icon = meta.icon;
             return (
               <div className="card group p-5" key={k}>
                 <div className="flex items-start justify-between">
                   <span
-                    className={`grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br ${meta.tint} text-white shadow-lg`}
+                    className={`grid h-11 w-11 place-items-center rounded-2xl ${meta.tint}`}
                   >
                     <Icon size={20} />
                   </span>
@@ -328,7 +341,7 @@ function Generate({ me }) {
             <div className="flex items-center gap-2 text-sm text-[var(--muted)]">
               <Coins size={16} /> Estimated cost
             </div>
-            <div className="mt-2 text-2xl font-black text-[#b5a4ff]">{cost} Rs</div>
+            <div className="mt-2 text-2xl font-black text-[var(--primary)]">{cost} Rs</div>
             <div className="mt-4 space-y-2 border-t border-[var(--border)] pt-3 text-xs text-[var(--muted)]">
               <Row label="Unit price" value={`${prices[f.duration] || 10} Rs`} />
               <Row label="Devices" value={`× ${Math.max(1, +f.device_limit || 1)}`} />
@@ -359,7 +372,7 @@ function Keys({ rows }) {
         <Table
           cols={['Key', 'Duration', 'Devices', 'Uses', 'Expires', 'Status', 'Actions']}
           rows={rows.map((x) => [
-            <span className="font-mono text-[#b5a4ff]" key="k">
+            <span className="font-mono text-[var(--primary)]" key="k">
               {x.key_value}
             </span>,
             <span className="badge badge-muted" key="d">
@@ -371,7 +384,7 @@ function Keys({ rows }) {
             </span>,
             x.uses,
             <span className="text-[var(--muted)]" key="e">
-              {x.expires_at || 'Not started'}
+              {fmtDate(x.expires_at) || 'Not started'}
             </span>,
             <StatusBadge blocked={x.is_blocked} key="s" />,
             <div className="flex gap-2" key={x.id}>
@@ -540,7 +553,7 @@ function Referral({ rows }) {
             <Table
               cols={['Code', 'Role', 'Duration', 'Balance', 'Used', 'Creator', 'Action']}
               rows={rows.map((x) => [
-                <span className="font-mono text-[#b5a4ff]" key="c">
+                <span className="font-mono text-[var(--primary)]" key="c">
                   {x.code}
                 </span>,
                 <span className="badge badge-primary" key="r">
@@ -657,14 +670,14 @@ function ServerView({ data }) {
                   onClick={() => setF({ ...f, [k]: on ? 'off' : 'on' })}
                   className={`flex items-center justify-between gap-2 rounded-xl border px-3.5 py-3 text-sm font-medium transition ${
                     on
-                      ? 'border-[rgba(124,92,255,0.4)] bg-[rgba(124,92,255,0.12)] text-white'
+                      ? 'border-[var(--primary)] bg-[var(--primary-soft)] text-[var(--primary)]'
                       : 'border-[var(--border)] bg-[var(--surface-3)] text-[var(--muted)]'
                   }`}
                 >
                   {k}
                   <span
                     className={`relative h-5 w-9 shrink-0 rounded-full transition ${
-                      on ? 'bg-[var(--primary)]' : 'bg-[var(--surface)]'
+                      on ? 'bg-[var(--primary)]' : 'bg-[var(--border-strong)]'
                     }`}
                   >
                     <span
@@ -719,7 +732,7 @@ function Settings({ data }) {
       <div className="grid gap-5 lg:grid-cols-2">
         <Box title="Connect token" desc="Use this token to link your app" icon={LockKeyhole}>
           <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-3)] p-3">
-            <code className="min-w-0 flex-1 truncate font-mono text-sm text-[#b5a4ff]">{data.connect_token}</code>
+            <code className="min-w-0 flex-1 truncate font-mono text-sm text-[var(--primary)]">{data.connect_token}</code>
             <button
               className="btn btn-secondary btn-sm"
               onClick={() => {
@@ -857,7 +870,7 @@ function Panels({ rows }) {
               {x.connect_token}
             </span>,
             <span className="text-[var(--muted)]" key="e">
-              {x.expires_at || 'Lifetime'}
+              {fmtDate(x.expires_at) || 'Lifetime'}
             </span>,
             x.total_users,
             x.total_keys,
