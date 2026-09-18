@@ -36,10 +36,10 @@ export default function Page() {
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden p-5">
-      <div className="pointer-events-none absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(34,211,238,0.2),transparent_70%)] blur-2xl" />
+      <div className="pointer-events-none absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(14,165,233,0.1),transparent_70%)] blur-2xl" />
 
       <div className="card glass relative w-full max-w-md p-7 md:p-8 animate-in">
-        <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-[#22d3ee] to-[#5b8cff] text-white shadow-[0_14px_30px_-12px_rgba(34,211,238,0.9)]">
+        <span className="grid h-12 w-12 place-items-center rounded-2xl bg-[var(--accent)] text-white shadow-sm">
           <Layers size={22} />
         </span>
         <h1 className="mt-4 text-2xl font-black tracking-tight">Claim Panel</h1>
@@ -75,7 +75,7 @@ export default function Page() {
         </form>
 
         <div className="mt-6 text-center">
-          <Link className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--muted)] hover:text-white" href="/login">
+          <Link className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--muted)] hover:text-[var(--text)]" href="/login">
             <ArrowLeft size={15} /> Back to sign in
           </Link>
         </div>

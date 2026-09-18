@@ -85,14 +85,14 @@ export default function Panel({ view = 'dashboard', children }) {
     <>
       <div className="flex items-center justify-between px-2 mb-8">
         <Link href="/dashboard" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-[#7c5cff] to-[#5b8cff] font-black text-white shadow-[0_10px_24px_-12px_rgba(124,92,255,0.9)]">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-[var(--primary)] font-black text-white shadow-sm">
             Y
           </span>
           <span className="font-black text-lg tracking-tight">
             YUVI <span className="text-gradient">PANEL</span>
           </span>
         </Link>
-        <button className="lg:hidden text-[var(--muted)] hover:text-white" onClick={() => setOpen(false)} aria-label="Close menu">
+        <button className="lg:hidden text-[var(--muted)] hover:text-[var(--text)]" onClick={() => setOpen(false)} aria-label="Close menu">
           <X size={20} />
         </button>
       </div>
@@ -142,7 +142,7 @@ export default function Panel({ view = 'dashboard', children }) {
 
       <div className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--surface-3)] p-3">
         <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#7c5cff] to-[#5b8cff] font-bold text-white">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-[var(--primary)] font-bold text-white">
             {initials}
           </span>
           <div className="min-w-0 flex-1">
@@ -170,7 +170,7 @@ export default function Panel({ view = 'dashboard', children }) {
       {/* Mobile backdrop */}
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-[rgba(16,24,40,0.4)] backdrop-blur-sm lg:hidden"
           onClick={() => setOpen(false)}
           aria-hidden="true"
         />
